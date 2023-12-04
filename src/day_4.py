@@ -1,4 +1,5 @@
 import re
+from typing import Iterator
 
 
 CARD_REGEX = re.compile(r"Card\s+(\d+):\s+([\d\s]+)\s+\|\s+([\d\s]+)")
@@ -16,20 +17,45 @@ class Card:
 
     def get_value(self) -> int:
         num_matches = len(self.get_your_winning_numbers())
-        return 2**(num_matches-1) if num_matches else 0
-    
+        return 2 ** (num_matches - 1) if num_matches else 0
 
-def get_card_value(card_string: str) -> int:
-    card: Card = Card(card_string)
-    return card.get_value()
+
+def read_card_file() -> Iterator[Card]:
+    with open("data/day_4.txt") as in_file:
+        for line in in_file:
+            yield Card(card_string=line)
+
+
+def get_cards_won(iter_cards: Iterator[Card]) -> int:
+    card_match_dict = {
+        card.card_num: len(card.get_your_winning_numbers()) for card in iter_cards
+    }
+
+    total_won = 0
+
+    def number_of_cards_won(cur_card: int) -> int:
+        num_cards_won = card_match_dict.get(cur_card, 0)
+        if num_cards_won > 0:
+            cards_won = list(range(cur_card + 1, cur_card + num_cards_won + 1))
+            return num_cards_won + sum((number_of_cards_won(num) for num in cards_won))
+        else:
+            return 0
+
+    for cur_card in card_match_dict:
+        total_won += number_of_cards_won(cur_card) + 1
+
+    return total_won
 
 
 def main():
-    total = 0
-    with open("data/day_4.txt") as in_file:
-        for line in in_file:
-            total += get_card_value(card_string=line)
+    # Part one
+    total = sum((card.get_value() for card in read_card_file()))
     print(f"Total: {total}")
+
+    # Part two
+    num_cards_won = get_cards_won(read_card_file())
+    print(f"Cards won: {num_cards_won}")
+
 
 if __name__ == "__main__":
     main()
